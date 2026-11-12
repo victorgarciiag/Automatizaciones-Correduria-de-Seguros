@@ -1,0 +1,1 @@
+ALTER TABLE recibo ADD COLUMN fecha_ultimo_aviso TIMESTAMP;

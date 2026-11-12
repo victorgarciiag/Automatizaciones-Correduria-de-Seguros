@@ -1,0 +1,455 @@
+{
+  "name": "01 - Recibos devueltos",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        0
+      ],
+      "id": "831ef0c5-c732-415e-8cbb-8432f6462623",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/api/integracion/recibos/avisos-pendientes?limite=50",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        224,
+        0
+      ],
+      "id": "bf77eef7-3060-4baa-9c37-6b5690759ba8",
+      "name": "Buscar recibos",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "AVISO_1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "aece7e77-df2b-4fa3-861c-a0fc508fc4de"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AVISO_1"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "1c816b1d-ce27-4dbb-a834-0621ca405ab2",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "AVISO_2",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AVISO_2"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "c3c42e1c-3892-4717-a1a7-c27236dc5e4b",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "AVISO_3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "AVISO_3"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "009d7604-5b18-4596-9cbd-c33d7b54a219",
+                    "leftValue": "={{ $json.accion }}",
+                    "rightValue": "ESCALAR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "ESCALAR"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        448,
+        0
+      ],
+      "id": "550ac0dc-0414-49dc-8af5-e0cb49767d93",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "fromEmail": "administracion@correduria.example",
+        "toEmail": "={{ $json.clienteEmail }}",
+        "subject": "Recordatorio: recibo pendiente de tu seguro",
+        "emailFormat": "text",
+        "text": "=Hola {{ $json.clienteNombre }},\n\nTe escribimos de nuevo porque el recibo {{ $json.numero }} de tu póliza {{ $json.polizaNumero }} ({{ $json.aseguradoraNombre }}), por importe de {{ $json.importe }} €, sigue pendiente de pago.\n\nSi ya lo has pagado, ignora este mensaje. Si no, responde a este email y te ayudamos a regularizarlo.\n\nUn saludo,\nRocío Benítez · Administración",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        720,
+        -64
+      ],
+      "id": "bd71ba81-87b1-4ce6-9e15-973d8d456a8c",
+      "name": "Email recordatorio",
+      "webhookId": "abd72435-fbcf-4dec-b1b6-16fc4a8fbd5b",
+      "credentials": {
+        "smtp": {
+          "id": "iZOmGdsawilLuKPB",
+          "name": "Mailpit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "administracion@correduria.example",
+        "toEmail": "={{ $json.clienteEmail }}",
+        "subject": "Recibo pendiente de tu seguro",
+        "emailFormat": "text",
+        "text": "=Hola {{ $json.clienteNombre }},\n\nEl banco nos ha devuelto el recibo {{ $json.numero }} de tu póliza {{ $json.polizaNumero }} ({{ $json.aseguradoraNombre }}), por importe de {{ $json.importe }} €.\n\nSeguramente sea un despiste o un cambio de cuenta. Responde a este email y te ayudamos a pagarlo.\n\nUn saludo,\nRocío Benítez · Administración",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        672,
+        -224
+      ],
+      "id": "960f0912-2378-4d6f-be02-e311af938da3",
+      "name": "Email amable",
+      "webhookId": "abd72435-fbcf-4dec-b1b6-16fc4a8fbd5b",
+      "credentials": {
+        "smtp": {
+          "id": "iZOmGdsawilLuKPB",
+          "name": "Mailpit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "administracion@correduria.example",
+        "toEmail": "={{ $json.clienteEmail }}",
+        "subject": "Importante: tu póliza podría anularse",
+        "emailFormat": "text",
+        "text": "=Hola {{ $json.clienteNombre }},\n\nEl recibo {{ $json.numero }} de tu póliza {{ $json.polizaNumero }} ({{ $json.aseguradoraNombre }}), por importe de {{ $json.importe }} €, sigue sin pagarse a pesar de nuestros avisos anteriores.\n\nSi no se regulariza en los próximos días, la aseguradora podría anular la póliza y te quedarías sin cobertura.\n\nLlámanos o responde a este email y lo solucionamos.\n\nUn saludo,\nRocío Benítez · Administración",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        736,
+        96
+      ],
+      "id": "292e57be-1413-4340-ab83-fd8b89b19287",
+      "name": "Email anulación",
+      "webhookId": "abd72435-fbcf-4dec-b1b6-16fc4a8fbd5b",
+      "credentials": {
+        "smtp": {
+          "id": "iZOmGdsawilLuKPB",
+          "name": "Mailpit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "administracion@correduria.example",
+        "toEmail": "=administracion@correduria.example",
+        "subject": "=Recibo  {{ $('Buscar recibos').item.json.numero }} sib cobrar tras 3 avisos",
+        "emailFormat": "text",
+        "text": "=El recibo {{ $json.numero }} sigue sin cobrarse después de 3 avisos automáticos.\n\nCliente: {{ $json.clienteNombre }}\nTeléfono: {{ $json.clienteTelefono }}\nEmail: {{ $json.clienteEmail }}\nPóliza: {{ $json.polizaNumero }} ({{ $json.aseguradoraNombre }})\nImporte: {{ $json.importe }} €\n\nToca llamarle.",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        640,
+        240
+      ],
+      "id": "f8e8cf1b-cbee-4d77-932b-5eef0f0c3713",
+      "name": "Email a administración",
+      "webhookId": "abd72435-fbcf-4dec-b1b6-16fc4a8fbd5b",
+      "credentials": {
+        "smtp": {
+          "id": "iZOmGdsawilLuKPB",
+          "name": "Mailpit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:8080/api/integracion/recibos/{{ $('Buscar recibos').item.json.id }}/aviso-enviado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        976,
+        32
+      ],
+      "id": "70aab810-e8af-4e99-940d-d64fb3e5afef",
+      "name": "Confirmar aviso1",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8080/api/integracion/ejecuciones",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "=  {\n    \"automatizacion\": \"recibos-devueltos\",\n    \"resultado\": \"OK\",\n    \"duracionMs\": 0,\n    \"referencia\": \"{{ $json.numero }}\",\n    \"detalle\": \"{{ $('Buscar recibos').item.json.accion }} enviado\"\n  }",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1200,
+        32
+      ],
+      "id": "3270a0d6-c758-479e-b165-8ca56e18a1a4",
+      "name": "Registrar ejecución",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 9
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        32,
+        160
+      ],
+      "id": "eb518659-6abc-4fc8-bb8f-db8892f6778f",
+      "name": "Schedule Trigger1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Buscar recibos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar recibos": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Email amable",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email recordatorio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email anulación",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email a administración",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email amable": {
+      "main": [
+        [
+          {
+            "node": "Confirmar aviso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email recordatorio": {
+      "main": [
+        [
+          {
+            "node": "Confirmar aviso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email anulación": {
+      "main": [
+        [
+          {
+            "node": "Confirmar aviso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email a administración": {
+      "main": [
+        [
+          {
+            "node": "Confirmar aviso1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Confirmar aviso1": {
+      "main": [
+        [
+          {
+            "node": "Registrar ejecución",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Trigger1": {
+      "main": [
+        [
+          {
+            "node": "Buscar recibos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "bdfc04a4-08f3-4c88-90be-fd1836221136",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b1c4c799429b04a2163bcd9d4daa2a7b8a41d2f563bc1d216ac16555b6850037"
+  },
+  "nodeGroups": [],
+  "id": "xug2qddxPtsVl2TK",
+  "tags": []
+}

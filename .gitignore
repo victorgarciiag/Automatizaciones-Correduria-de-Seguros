@@ -1,0 +1,34 @@
+# ── Secretos ─────────────────────────────────────────────
+# Las claves reales van en .env (no se sube). .env.example sí se sube como plantilla.
+.env
+.env.*
+!.env.example
+
+# ── Backend (Java / Maven) ──────────────────────────────
+backend/target/
+*.class
+*.log
+# Ficheros de Eclipse / STS
+.classpath
+.project
+.settings/
+.factorypath
+
+# ── Frontend (Angular) ──────────────────────────────────
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+node_modules/
+
+# ── Datos locales de contenedores (si algún día se montan como carpetas) ──
+n8n_data/
+postgres_data/
+
+# ── Material de trabajo que no forma parte del proyecto ──
+Claude outputs/
+
+# ── Sistema / IDE ───────────────────────────────────────
+.DS_Store
+.idea/
+.vscode/
+*.iml

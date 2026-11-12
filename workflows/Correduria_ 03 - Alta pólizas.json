@@ -1,0 +1,310 @@
+{
+  "name": "Correduria: 03 - Alta pólizas",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "alta-poliza",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "91f77929-45a3-4607-aadd-46bb352bc495",
+      "name": "Webhook",
+      "webhookId": "246b2c8e-0028-47f7-8f0d-1bffa677a6aa"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "claude-haiku-5-5",
+          "mode": "list",
+          "cachedResultName": "claude-haiku-5-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Extrae los datos de esta póliza"
+            }
+          ]
+        },
+        "addAttachments": true,
+        "attachmentsInputType": "binary",
+        "binaryPropertyName": "pdf",
+        "options": {
+          "system": "=Eres un asistente que extrae datos de pólizas de seguros. Responde SOLO con un objeto JSON válido, sin texto adicional y sin bloques de código markdown. Usa exactamente esta estructura: {   \"aseguradora\": string,   \"numero_poliza\": string,   \"ramo\": string,   \"producto\": string,   \"tomador\": {     \"nombre\": string,     \"nif\": string,     \"direccion\": string,     \"telefono\": string,     \"email\": string   },   \"objeto_asegurado\": string,   \"fecha_efecto\": \"AAAA-MM-DD\",   \"fecha_vencimiento\": \"AAAA-MM-DD\",   \"prima_anual\": number,   \"forma_pago\": string } Reglas: - Copia el NIF exactamente como aparece, sin corregirlo. - Fechas en formato AAAA-MM-DD. Prima como número con punto decimal (ej. 1245.00). - Si un dato no aparece, pon null. No inventes ni corrijas valores."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        192,
+        -128
+      ],
+      "id": "1fe74885-06d4-4e2c-bbd2-fb7340b8ef8e",
+      "name": "Message a model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "lAVA0HpZQIa8rvcQ",
+          "name": "Claude api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.parse($json.content.find(c => c.type === 'text').text) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        496,
+        16
+      ],
+      "id": "432864f3-11cd-46e5-b97e-944cd6ba508d",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8080/api/integracion/polizas/alta",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        720,
+        16
+      ],
+      "id": "2dbd4a00-0694-4480-872e-c702630b95cd",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "b80a0044-725c-4e45-bd69-ba068b9bcda0",
+              "leftValue": "={{ $json.resultado }}",
+              "rightValue": "REVISION",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        944,
+        16
+      ],
+      "id": "8f7cabad-5908-48ef-91dc-ae9e2d261321",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8080/api/integracion/revisiones",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  automatizacion: 'alta-poliza',\n  titulo: 'Alta de póliza ' + $('Edit Fields').first().json.numero_poliza,\n  motivo: $json.motivos.join('; '),\n  datosPropuestos: $('Edit Fields').first().json\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1168,
+        -80
+      ],
+      "id": "ac7b2aea-f41d-42ee-9fb6-49de939cff71",
+      "name": "Revisión",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:8080/api/integracion/altas-poliza/{{ $('Webhook').first().json.query.altaId }}/resultado",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  estado: $('HTTP Request').first().json.resultado,\n  polizaNumero: $('HTTP Request').first().json.polizaNumero,\n  motivos: $('HTTP Request').first().json.motivos\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1360,
+        16
+      ],
+      "id": "22bfb1a3-245f-4b1b-8414-ffcd3be6dd4e",
+      "name": "Avisar Resultado",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://host.docker.internal:8080/api/integracion/ejecuciones",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  automatizacion: 'alta-poliza',\n  resultado: $('HTTP Request').first().json.resultado === 'CREADA' ? 'OK' : 'REVISION',\n  duracionMs: 0,\n  referencia: $('HTTP Request').first().json.polizaNumero\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1552,
+        16
+      ],
+      "id": "01d088bd-dae5-4875-88e5-c386637a5880",
+      "name": "Registrar ejecución",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Revisión",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Avisar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisión": {
+      "main": [
+        [
+          {
+            "node": "Avisar Resultado",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Avisar Resultado": {
+      "main": [
+        [
+          {
+            "node": "Registrar ejecución",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "98eb53ff-1f01-4571-847e-990f93fdf8a2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b1c4c799429b04a2163bcd9d4daa2a7b8a41d2f563bc1d216ac16555b6850037"
+  },
+  "nodeGroups": [],
+  "id": "j8u0VW6v1jer4KWO",
+  "tags": []
+}

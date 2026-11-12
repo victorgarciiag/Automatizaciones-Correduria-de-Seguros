@@ -1,0 +1,393 @@
+{
+  "name": "Correduria: 02 - Comparación presupuesto",
+  "nodes": [
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "claude-haiku-5-5",
+          "mode": "list",
+          "cachedResultName": "claude-haiku-5-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "Extrae los datos según este presupuesto"
+            }
+          ]
+        },
+        "addAttachments": true,
+        "attachmentsInputType": "binary",
+        "binaryPropertyName": "pdf",
+        "options": {
+          "system": "=Eres un asistente que extrae datos de presupuestos de seguros de coche.\nResponde SOLO con un objeto JSON válido, sin texto adicional y sin bloques de código markdown.\nUsa exactamente esta estructura:\n{\n  \"aseguradora\": string,\n  \"precio_anual\": number,\n  \"franquicia_danos_propios\": number o null,\n  \"vehiculo_sustitucion\": boolean o null,\n  \"coberturas\": {\n    \"rc_voluntaria\": boolean o null,\n    \"danos_propios\": boolean o null,\n    \"lunas\": boolean o null,\n    \"robo\": boolean o null,\n    \"incendio\": boolean o null,\n    \"asistencia_viaje\": boolean o null,\n    \"defensa_juridica\": boolean o null\n  }\n}\nReglas:\n- \"aseguradora\": nombre comercial con mayúscula inicial en cada palabra (ej. \"Atlántica Seguros\").\n- \"precio_anual\": número en euros con decimales, impuestos incluidos (ej. 548.90).\n- Coberturas: true si el documento dice que está incluida, false si dice que no está incluida, null si no se menciona.\n- Si un dato no aparece en el documento, pon null. No inventes valores.\n"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        288,
+        0
+      ],
+      "id": "16b3b482-f09f-4527-9b94-cda4eb604ca3",
+      "name": "Message a model",
+      "credentials": {
+        "anthropicApi": {
+          "id": "lAVA0HpZQIa8rvcQ",
+          "name": "Claude api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "=   {{ JSON.parse($json.content.find(c => c.type === 'text').text) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        592,
+        -128
+      ],
+      "id": "631d6287-ea54-4354-8c3f-cc65d2e68137",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "jsCode": "// El formulario entrega 1 item con todos los PDFs en \"binary\"\nconst binarios = $input.first().binary;\n\n// Creamos un item por cada PDF, siempre con el mismo nombre de binario: \"pdf\"\nreturn Object.keys(binarios).map(nombre => ({\n  json: { fichero: binarios[nombre].fileName },\n  binary: { pdf: binarios[nombre] }\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        128,
+        -128
+      ],
+      "id": "6daba8dc-b84f-4e17-8e5a-33a4aaa779d0",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "aggregate": "aggregateAllItemData",
+        "destinationFieldName": "pdf",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        784,
+        0
+      ],
+      "id": "d0d52483-5752-47a6-91ec-2975c540140c",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "claude-haiku-5-5",
+          "mode": "list",
+          "cachedResultName": "claude-haiku-5-5"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "=Cliente: {{ $('Webhook').item.json.query.clienteNombre }}\nVehículo: {{ $('Webhook').item.json.query.vehiculo }}\n\nPresupuestos:\n{{ JSON.stringify($json.pdf) }}"
+            }
+          ]
+        },
+        "options": {
+          "system": "Eres Lucía Moreno, comercial de una correduría de seguros. Redactas emails para clientes comparando presupuestos de seguro de coche.  Responde SOLO con el HTML del cuerpo del email, sin <html> ni <body>, sin markdown y sin bloques de código.  El email debe tener: 1. Un saludo breve y cercano usando el nombre del cliente. 2. Una tabla HTML comparativa con estas filas: Precio anual, Franquicia daños propios, Vehículo de sustitución y Coberturas incluidas. Una columna por aseguradora. Usa estilos inline sencillos (bordes finos, padding, cabecera con fondo gris claro). 3. Un párrafo con tu recomendación, explicando el motivo en 2-3 frases (equilibrio entre precio, franquicia y vehículo de sustitución). 4. Si algún dato es null, escribe \"No indicado\" en la tabla y avisa en el texto de que hay que confirmarlo con la aseguradora antes de contratar. 5. Una despedida ofreciendo resolver dudas, firmada como \"Lucía Moreno · Comercial\".  Reglas: - Usa SOLO los datos proporcionados. No inventes precios, coberturas ni condiciones. - Precios en formato español (548,90 €). - Tono profesional pero cercano, en español de España. - La decisión final es del cliente: recomienda, no impongas.",
+          "maxTokens": 4096
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.anthropic",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        16
+      ],
+      "id": "e24976f7-6aac-4456-ae61-40379528a533",
+      "name": "Message a model1",
+      "credentials": {
+        "anthropicApi": {
+          "id": "lAVA0HpZQIa8rvcQ",
+          "name": "Claude api"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "fromEmail": "comercial@correduria.example",
+        "toEmail": "={{ $('Webhook').item.json.query.clienteEmail }}",
+        "subject": "Comparativa de seguros - Prueba Desarrollo ",
+        "html": "={{ $json.body.emailHtml }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        1888,
+        -16
+      ],
+      "id": "afba0025-2fa1-40b0-bb21-b9fc02a8746c",
+      "name": "Send an Email",
+      "webhookId": "017c4be3-a96d-4cfb-a7a3-4d21095b6611",
+      "credentials": {
+        "smtp": {
+          "id": "iZOmGdsawilLuKPB",
+          "name": "Mailpit"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "comparativa-presupuestos",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.2,
+      "position": [
+        -64,
+        0
+      ],
+      "id": "bc9211d3-1011-4a90-a6d6-013e047c166d",
+      "name": "Webhook",
+      "webhookId": "3e10174f-f375-47c3-a2e7-e5a59756414c"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:8080/api/integracion/comparativas/{{ $('Webhook').first().json.query.comparativaId }}/borrador",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  datos: $('Aggregate').first().json.pdf,\n  emailAsunto: 'Comparativa de seguros para tu ' + $('Webhook').first().json.query.vehiculo,\n  emailHtml: $json.content.find(c => c.type === 'text').text,\n  callbackUrl: $execution.resumeUrl\n}) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        1312,
+        160
+      ],
+      "id": "8d21e5ff-dae7-40dc-8b46-ff0d3a3056ad",
+      "name": "Enviar borrador",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resume": "webhook",
+        "httpMethod": "POST",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1424,
+        0
+      ],
+      "id": "e69f907f-3267-4d7e-b747-19fe734eaf85",
+      "name": "Wait",
+      "webhookId": "e0ec1d73-f9e8-40c5-8864-ef4ceaa88bac"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 4
+          },
+          "conditions": [
+            {
+              "id": "8ac88522-32d5-4de3-98ad-c8daeb38c303",
+              "leftValue": "={{ $json.body.decision }}",
+              "rightValue": "=APROBADA",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1616,
+        0
+      ],
+      "id": "22bdd250-75c3-4606-a162-21e011eda3b7",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=http://host.docker.internal:8080/api/integracion/comparativas/{{ $('Webhook').first().json.query.comparativaId }}/enviada",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {}
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.5,
+      "position": [
+        2112,
+        -16
+      ],
+      "id": "12799bc9-424d-4db7-a952-3ca8a646efc3",
+      "name": "Confirmar envio",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JMvgAFqj84L1qsqX",
+          "name": "Backoffice correduría"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Message a model": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Message a model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Message a model1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Message a model1": {
+      "main": [
+        [
+          {
+            "node": "Enviar borrador",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar borrador": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Confirmar envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "fda0e2e3-544d-4ef1-a8b2-ac9f5e65a5b0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "b1c4c799429b04a2163bcd9d4daa2a7b8a41d2f563bc1d216ac16555b6850037"
+  },
+  "nodeGroups": [],
+  "id": "bWtm6HSe1Eu6z0lz",
+  "tags": []
+}

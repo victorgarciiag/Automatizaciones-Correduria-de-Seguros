@@ -1,0 +1,86 @@
+# Correduría de Seguros · entorno completo
+#   docker compose up -d --build
+#
+#   Backoffice:  http://localhost:4200
+#   API + docs:  http://localhost:8080/swagger-ui.html
+#   n8n:         http://localhost:5678
+#   Mailpit:     http://localhost:8025
+#
+# El servicio n8n es el mismo que ya tenías (mismo volumen n8n_data: no se pierden tus flujos).
+
+name: automatizaciones-seguros
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: n8n
+    restart: unless-stopped
+    ports:
+      - "5678:5678"
+    environment:
+      - GENERIC_TIMEZONE=Europe/Madrid
+      - TZ=Europe/Madrid
+    volumes:
+      - n8n_data:/home/node/.n8n
+
+  # Servidor de correo falso: los emails de n8n se ven en http://localhost:8025 y no salen a Internet
+  mailpit:
+    image: axllent/mailpit
+    container_name: mailpit
+    restart: unless-stopped
+    environment:
+      MP_SMTP_AUTH_ACCEPT_ANY: "1"
+      MP_SMTP_AUTH_ALLOW_INSECURE: "1"
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: correduria-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: correduria
+      POSTGRES_USER: correduria
+      POSTGRES_PASSWORD: correduria
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U correduria" ]
+      interval: 5s
+      retries: 10
+
+  backend:
+    build: ./backend
+    container_name: correduria-backend
+    restart: unless-stopped
+    environment:
+      DB_URL: jdbc:postgresql://postgres:5432/correduria
+      DB_USER: correduria
+      DB_PASSWORD: correduria
+      INTEGRACION_API_KEY: ${INTEGRACION_API_KEY:-cambia-esta-clave}
+      SEED_EJECUCIONES_DEMO: ${SEED_EJECUCIONES_DEMO:-true}
+      # Para avisar a n8n al resolver una revisión (su resumeUrl usa localhost:5678)
+      N8N_URL_INTERNA: http://n8n:5678
+      N8N_WEBHOOK_COMPARATIVA: http://n8n:5678/webhook/comparativa-presupuestos
+      N8N_WEBHOOK_ALTA_POLIZA: http://n8n:5678/webhook/alta-poliza
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build: ./frontend
+    container_name: correduria-frontend
+    restart: unless-stopped
+    ports:
+      - "4200:80"
+    depends_on:
+      - backend
+
+volumes:
+  n8n_data:
+  postgres_data:

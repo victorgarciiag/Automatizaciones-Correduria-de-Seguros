@@ -1,0 +1,56 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: correduria-backoffice
+  datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/correduria}
+    username: ${DB_USER:correduria}
+    password: ${DB_PASSWORD:correduria}
+  jpa:
+    open-in-view: false
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc.time_zone: Europe/Madrid
+  flyway:
+    enabled: true
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 40MB
+  jackson:
+    time-zone: Europe/Madrid
+    default-property-inclusion: non_null
+
+app:
+  # Clave que debe enviar n8n en la cabecera X-API-Key para usar /api/integracion/**
+  integracion:
+    api-key: ${INTEGRACION_API_KEY:cambia-esta-clave}
+  n8n:
+    # Ver RevisionService: reescribe http://localhost:5678 al avisar a n8n desde Docker
+    url-interna: ${N8N_URL_INTERNA:}
+    # Webhook del flujo «02 · Comparativa presupuestos» (URL de producción: el workflow debe estar publicado)
+    webhook-comparativa: ${N8N_WEBHOOK_COMPARATIVA:http://localhost:5678/webhook/comparativa-presupuestos}
+    # Webhook del flujo «03 · Alta de pólizas» (cambia /webhook/ por /webhook-test/ mientras lo construyes)
+    webhook-alta-poliza: ${N8N_WEBHOOK_ALTA_POLIZA:http://localhost:5678/webhook/alta-poliza}
+  seed:
+    # Genera la cartera ficticia (clientes, pólizas, recibos, siniestros) si la BD está vacía
+    cartera: ${SEED_CARTERA:true}
+    # Genera ejecuciones y revisiones de DEMOSTRACIÓN (marcadas como demo=true).
+    # Desactívalo antes de grabar demos reales para no mezclar datos inventados con métricas reales.
+    ejecuciones-demo: ${SEED_EJECUCIONES_DEMO:true}
+
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+  api-docs:
+    path: /v3/api-docs
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health
